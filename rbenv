@@ -1,0 +1,583 @@
+#!/usr/bin/env bash
+
+# rbenv installation script version 0.1
+# this script follows installation guide from https://github.com/sstephenson/rbenv
+
+# usage: rbenv_install [OPTION...]
+
+# you can pass this options:
+# --help            to see this help
+# --license         to see license
+# --install         to install/update rbenv
+# --backup          to create backup of plugins and versions folders in ~/.rbenv_bak
+# --unistall        to uninstall rbenv completely
+# --no-ruby-build   to install/update without ruby-build plugin (not recommended)
+# --only-ruby-build to install/update only ruby-build plugin
+# --uninstall-ruby-build
+#                   to uninstall ruby-build plugin
+
+# written by Szymon Błaszczyński in August 2014
+
+# The MIT License (MIT)
+
+# Copyright (c) 2014 Szymon Błaszczyński
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+### START OF THE SCRIPT
+
+# VARIABLES
+
+RUBY_BUILD=0
+PROFILE_LINE1='export PATH="$HOME/.rbenv/bin:$PATH"'
+PROFILE_LINE2='eval "$(rbenv init -)"'
+
+# END OF VARIABLES
+
+# FUNCTIONS
+
+# Check if git is installed, if not exit
+function requirements {
+  # Checking if git is installed
+  hash git 2>/dev/null || { echo >&2 "I require git but it's not installed. Visit http://git-scm.com/download/linux for further instructions...   Aborting."; exit 1; }
+}
+
+function clone_rbenv {
+  requirements
+  if git clone https://github.com/sstephenson/rbenv.git ~/.rbenv ; then
+    return 0
+  else
+    return 1
+  fi  
+}
+
+function clone_ruby_build {
+  requirements
+  if git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function update_rbenv {
+  requirements
+  cd ~/.rbenv
+  if git pull ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function update_ruby_build {
+  requirements
+  cd ~/.rbenv/plugins/ruby-build
+  if git pull ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# Install ruby-buil plugin
+function install_ruby_build {
+  requirements
+  if clone_ruby_build; then
+    echo "Cloned ruby-build repository to ~/.rbenv/plugins/ruby-build"
+    echo "Type 'rbenv install --list' to see list of possible rubies for installation."
+    exec $SHELL
+  # Something went wrong
+  else
+    # Check if ruby-build is installed
+    if ls -la ~/.rbenv/plugins/ruby-build &> /dev/null; then
+      while true ; do
+        echo "You already have ruby-build."
+        read -p "Do you wish to update? [Y/n]:" yn
+        case $yn in
+          # Update
+          [Yy]* ) 
+            if update_ruby_build ; then
+              echo "Successfully updated ruby-build to the newest version."
+            else
+              echo "Cannot connect using git to ruby-build repository. Check your Internet connection and try to manually install ruby-build from https://github.com/sstephenson/ruby-build"
+              exit 1
+            fi
+            break;;
+          # Cancel
+          [Nn]* ) exit;;
+          * ) echo "Please answer yes or no.";;
+        esac
+      done
+    # Something else went wrong
+    else
+      echo "Cannot connect using git to ruby-build repository. Check your Internet connection and try to manually install ruby-build from https://github.com/sstephenson/ruby-build"
+      exit 1;
+    fi
+  fi
+}
+
+# Remove folder
+function remove_rbenv_folder {
+  if rm -rf ~/$1 ; then
+    echo "Deleted $HOME/$1 folder."
+    return 0
+  else
+    return 1
+  fi
+}
+
+function uninstall_ruby_build {
+  if remove_rbenv_folder .rbenv/plugins/ruby-build ; then
+    echo "Successfully deleted ruby-build."
+    exit
+  else
+    echo "Can't delete ruby-build."
+    exit 1
+  fi
+}
+
+# Full uninstallation of rbenv with removing lines from shell
+# configuration files
+function uninstall {
+  remove_rbenv_folder .rbenv
+  declare -a SH_CONFIG=('.bashrc' '.bash_profile' '.zshrc');
+  for config in "${SH_CONFIG[@]}"
+  do
+    if ls -la ~/$config &> /dev/null; then
+      if grep -q 'export PATH="$HOME/.rbenv/bin:$PATH"' ~/$config || grep -q 'eval "$(rbenv init -)"' ~/$config ; then
+        cp ~/$config ~/$config.bak
+        echo "Created backup of your $config shell configuration file."
+        LINES=0
+        if sed -i /'eval "$(rbenv init -)"'/{d} ~/$config ; then
+          LINES=$(($LINES + 1))
+        fi
+        if sed -i '\~export PATH="$HOME/.rbenv/bin:$PATH"~d' ~/$config ; then
+          LINES=$(($LINES + 1))
+        fi
+        echo "Deleted $LINES lines from your $config shell configuration file."
+        . ~/$config
+        exec $SHELL
+        echo "Reloaded your shell configuration, but you may need to restart your terminal."
+      fi
+    fi
+  done
+  echo "Uninstalled rbenv completely from your system."
+}
+
+# Backup plugins and versions folder into ~/.rbenv_bak
+function backup {
+  BACKUP=1
+  mkdir ~/.rbenv_bak | echo "Created backup folder in $HOME/.rbenv_bak"
+  if ls -la ~/.rbenv/plugins &> /dev/null; then
+    if cp -rf ~/.rbenv/plugins ~/.rbenv_bak/plugins ; then
+      echo "Backuped your plugins folder."
+      BACKUP=0
+    else
+      BACKUP=1
+    fi
+  else
+    echo "You don't have plugins folder. Skipping."
+    BACKUP=0
+  fi
+  if ls -la ~/.rbenv/versions &> /dev/null; then
+    if cp -rf ~/.rbenv/versions ~/.rbenv_bak/versions ; then
+      echo "Backuped your versions folder."
+      if [ $BACKUP == 1 ] ; then
+        return 1
+      else
+        return 0
+      fi
+    else
+      return 1
+    fi
+  else
+    echo "You don't have versions folder. Skipping."
+    if [ $BACKUP == 1 ] ; then
+      return 1
+    else
+      return 0
+    fi
+  fi
+}
+
+# Revert backuped folders from ~/.rbenv_bak, plugins and versions
+function revert_backup {
+  BACKUP=1
+  if ls -la ~/.rbenv_bak/plugins &> /dev/null; then
+    if cp -r ~/.rbenv_bak/plugins ~/.rbenv ; then
+      echo "Reverted your plugins folder."
+      BACKUP=0
+    else
+      echo "Cannot revert plugins folder from $HOME/.rbenv_bak"
+      BACKUP=1
+    fi
+  else
+    echo "You don't have plugins folder. Skipping."
+    BACKUP=0
+  fi
+  if ls -la ~/.rbenv_bak/versions &> /dev/null; then
+    if cp -r ~/.rbenv_bak/versions ~/.rbenv ; then
+      echo "Reverted your versions folder."
+      if [ $BACKUP == 1 ] ; then
+        return 1
+      else
+        return 0
+      fi
+    else
+      echo "Cannot revert versions folder from $HOME/.rbenv_bak"
+      return 1
+    fi
+  else
+    echo "You don't have versions folder. Skipping."
+    if [ $BACKUP == 1 ] ; then
+      return 1
+    else
+      return 0
+    fi
+  fi
+}
+
+# Reinstallation of rbenv
+function clean_install {
+  requirements
+  remove_rbenv_folder .rbenv
+  if git clone https://github.com/sstephenson/rbenv.git ~/.rbenv ; then
+    echo "Cloned rbenv repository to ~/.rbenv"
+  else
+    echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
+    exit 1;
+  fi
+}
+
+# Add line into file
+function add_line {
+  echo $1 >> $2
+}
+
+# Adding lines to shell configuration files depending on Linux distribution
+function sh_profile {
+  # Creating bash configuration if it doesn't exist
+    if ! ls -la ~/$1 &> /dev/null; then
+      echo "It looks like you don't have ~/$1, in case you will be using Bash, creating one for you."
+      add_line $PROFILE_LINE1 ~/$1
+      add_line $PROFILE_LINE2 ~/$1
+      echo 'You have new lines in your ~/$1'
+    # Checking if required lines exist in bash configuration and adding them if not
+    else
+      LINES=0
+      if ! grep -q 'export PATH="$HOME/.rbenv/bin:$PATH"' ~/$1 ; then
+        add_line $PROFILE_LINE1 ~/$1
+        LINES=$(($LINES + 1))
+      fi
+      if ! grep -q 'eval "$(rbenv init -)"' ~/$1 ; then
+        add_line $PROFILE_LINE2 ~/$1
+        LINES=$(($LINES + 1))
+      fi
+      echo "You have $LINES new lines in your ~/$1"
+    fi
+    # Reloading shell configuration file
+    . ~/$1
+    exec $SHELL
+    echo "Reloaded your shell configuration, but you may need to restart your terminal."
+}
+
+# Display license
+function license {
+  printf "%s\n" "The MIT License (MIT)"
+  printf "%s\n" ""
+  printf "%s\n" "Copyright (c) 2014 Szymon Błaszczyński"
+  printf "%s\n" ""
+  printf "%s\n" "Permission is hereby granted, free of charge, to any person obtaining a copy \
+of this software and associated documentation files (the \"Software\"), to deal \
+in the Software without restriction, including without limitation the rights \
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell \
+copies of the Software, and to permit persons to whom the Software is \
+furnished to do so, subject to the following conditions:"
+  printf "%s\n" ""
+  printf "%s\n" "The above copyright notice and this permission notice shall be included in \
+all copies or substantial portions of the Software."
+  printf "%s\n" ""
+  printf "%s\n" "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR \
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, \
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE \
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER \
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, \
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN \
+THE SOFTWARE."
+}
+
+# Print help to output
+function print_help {
+  printf "%s\n" "rbenv installation script version 0.1" 
+  printf "%s\n" "this script follows installation guide from https://github.com/sstephenson/rbenv"
+  printf "%s\n" ""
+  printf "%s\n" "usage: rbenv_install [OPTION...]"
+  printf "%s\n" ""
+  printf "%s\n" "  --help            to see this help"
+  printf "%s\n" "  --install         to install/update rbenv"
+  printf "%s\n" "  --license         to see license"
+  printf "%s\n" "  --backup          to create backup of plugins and versions folders in ~/.rbenv_bak"
+  printf "%s\n" "  --unistall        to uninstall rbenv completely"
+  printf "%s\n" "  --no-ruby-build   to install/update without ruby-build plugin (not recommended)"
+  printf "%s\n" "  --only-ruby-build to install/update only ruby-build plugin"
+  printf "%s\n" "  --uninstall-ruby-build"
+  printf "%s\n" "                    to uninstall ruby-build plugin"
+  printf "%s\n" ""
+  printf "%s\n" "written by Szymon Błaszczyński in August 2014"    
+}
+
+function install {
+  # Cloning rbenv git repsitory from github
+  if clone_rbenv ; then
+    echo "Cloned rbenv repository to ~/.rbenv"
+  # If something wrong
+  else
+    # If there is ~/.rbenv folder
+    if ls -la ~/.rbenv &> /dev/null; then
+      echo "You have rbenv installed, do you wish to make a backup of plugins and versions(rubies) folders and install new rbenv or do a clean install(remove everything and install from scratch)?"
+      # Select if you want to backup and install, clean install or cancel
+      select yn in  "Backup and Clean Install" "Backup and Update" "Clean Install" "Cancel"; do
+        case $yn in
+          # Backup and Clean Install
+          "Backup and Clean Install" )
+            # Backup and check if failed to backup
+            if ! backup ; then
+              while true ; do
+                echo "Failed to backup."
+                read -p "Do you wish to proceed? [Y/n]:" yn
+                case $yn in
+                  # Clean Install if failed to backup
+                  [Yy]* )
+                    clean_install
+                    break;;
+                  # Cancel
+                  [Nn]* ) exit;;
+                  * ) echo "Please answer yes or no.";;
+                esac
+              done
+            # Clean Install if backup worked
+            else
+              remove_rbenv_folder .rbenv
+              if clone_rbenv ; then
+                echo "Cloned rbenv repository to ~/.rbenv"
+                # Revert backup and check if success
+                if ! revert_backup ; then
+                  echo "Backup didn't fully recovered your versions and plungins folders. Try to copy them manually."
+                else
+                  echo "Backup fully worked, reverted plugins and versions folders inside new installation of rbenv."
+                fi
+              # Something wrong with git
+              else
+                echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
+                echo "You have your plugins and versions folders backuped in $HOME/.rbenv_bak"
+                exit 1;
+              fi
+            fi
+            break;;
+          # Clean Install which will delete current rbenv with plugins and versions folders
+          "Backup and Update" )
+            # Backup and check if failed to backup
+            if ! backup ; then
+              while true ; do
+                echo "Failed to backup."
+                read -p "Do you wish to proceed? [Y/n]:" yn
+                case $yn in
+                  # Update if failed to backup
+                  [Yy]* )
+                    if update ; then
+                      echo "Successfully updated rbenv to the newest version"
+                    else
+                      echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
+                      exit 1
+                    fi
+                    break;;
+                  # Cancel
+                  [Nn]* ) exit;;
+                  * ) echo "Please answer yes or no.";;
+                esac
+              done
+            # Installing if backup worked
+            else
+              if update ; then
+                echo "Successfully updated rbenv repository to the newest version"
+                # Revert backup and check if success
+                if ! revert_backup ; then
+                  echo "Backup didn't fully recovered your versions and plungins folders."
+                else
+                  echo "Backup fully worked, reverted plugins and versions folders inside new installation of rbenv."
+                fi
+              # Something wrong with git
+              else
+                echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
+                echo "You have your plugins and versions folders backuped in $HOME/.rbenv_bak"
+                exit 1;
+              fi
+            fi
+            break;;
+          "Clean Install" )
+            clean_install
+            break;;
+          # Cancel
+          Cancel ) exit;;
+        esac
+      done
+    # Probably connection with internet isn't working
+    else
+     echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
+     exit 1;
+    fi
+  fi
+
+  # Adding required lines by rbenv to your shell
+  # configuration and reloading it
+
+  # Check if using Ubuntu
+  dist=`grep DISTRIB_ID /etc/*-release | awk -F '=' '{print $2}'`
+  if [ "$dist" == "Ubuntu" ]; then
+    # Checking if Ubuntu server
+    if  dpkg -l ubuntu-desktop | grep -q 'dpkg-query: no packages found matching ubuntu-desktop' ; then
+      sh_profile .bash_profile
+    # If it's Ubuntu Desktop
+    else
+      sh_profile .bashrc
+    fi
+  # If it's other Linux flavour
+  else
+    sh_profile .bash_profile
+  fi
+
+  # If using Zsh shell, adding lines required by rbenv and
+  # reloading configuration
+  ZSH_CONF='.zshrc'
+  if ls -la ~/ZSH_CONF &> /dev/null; then
+    if ! grep -q $PROFILE_LINE1 ~/ZSH_CONF ; then
+      add_line PROFILE_LINE1 ~/ZSH_CONF
+      echo "Added line to $HOME./.zshrc"
+    fi
+    if ! grep -q $PROFILE_LINE2 ~/ZSH_CONF ; then
+      add_line PROFILE_LINE2 ~/ZSH_CONF
+      echo 'Added line to $HOME/.zshrc'
+    fi
+    # Reloading shell configuration file
+    . ~/ZSH_CONF
+  else
+    while true; do
+      echo "It seems you don't have ~/.zshrc for Zsh shell do you wish to create it?"
+      read -p  "Answer yes if you plan to use Zsh shell. [Y/n]:" yn
+      case $yn in
+          [Yy]* ) 
+            add_line PROFILE_LINE1 ~/ZSH_CONF
+            add_line PROFILE_LINE2 ~/ZSH_CONF
+            break;;
+          [Nn]* ) break;;
+          * ) echo "Please answer yes or no.";;
+      esac
+    done
+  fi
+
+  # Executing commands nedded to perform a test if rbenv is
+  # properly installed
+  export PATH="$HOME/.rbenv/bin:$PATH"
+  eval "$(rbenv init -)"
+  # Checking if rbenv is a function, if is, then it's properly
+  # set and ready to run
+  if  [ "$( type -t rbenv )" == "function" ] ;
+  then
+    echo 'Success! rbenv is properly working'
+  else
+    echo 'Something went wrong. You may want to check your logs looking for errors.'
+    exit 1;
+  fi
+
+  # If backup failed or wasn't used installing ruby-build
+  if [ $RUBY_BUILD == 0 ] ; then
+    # Cloning ruby-build git repsitory from github
+    install_ruby_build
+  fi
+
+  # Closing message
+  printf "Everything is installed correctly, you may want to proceed with installation of rubies now.\n\
+  See https://github.com/sstephenson/rbenv for basic usage.\n\
+  If you have ruby-build installed you can type 'rbenv install [ruby version]' to install desired version of ruby.\n"
+
+}
+
+# END OF FUNCTIONS
+
+# Check supplied arguments and display help if none
+if [ "$#" -eq "0" ] ; then
+  ARGUMENTS=0
+  print_help
+  exit
+else
+  ARGUMENTS=$#
+  for var in "$@"
+  do
+    case $var in
+      # Printing help out
+      --help )
+        print_help
+        exit
+        ;;
+      # Standard install
+      --install )
+        install
+        exit
+        ;;
+      # Printing license out
+      --license )
+        license
+        exit
+        ;;
+      # Backup
+      --backup )
+        if backup ; then
+          echo "You have backuped plugins and versions(rubies) folders in $HOME/.rbenv_bak"
+        else
+          echo "Backup failed."
+        fi
+        exit
+        ;;
+      # Uninstalling
+      --uninstall ) 
+        uninstall
+        exit
+        ;;
+      # Installing only ruby-build plugin
+      --only-ruby-build )
+        install_ruby_build
+        exit
+        ;;
+      # Installing rbenv without ruby-build
+      --no-ruby-build )
+        RUBY_BUILD=1
+        install
+        exit
+        ;;
+      --uninstall-ruby-build )
+        uninstall_ruby_build
+        exit
+        ;;
+    esac
+  done
+fi
+
+
+### END OF THE SCRIPT
