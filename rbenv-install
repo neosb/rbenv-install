@@ -3,7 +3,7 @@
 # rbenv installation script version 0.1
 # this script follows installation guide from https://github.com/sstephenson/rbenv
 
-# usage: rbenv_install [OPTION...]
+# usage: rbenv-install [OPTION...]
 
 # you can pass this options:
 # --help            to see this help
@@ -11,12 +11,10 @@
 # --install         to install/update rbenv
 # --backup          to create backup of plugins and versions folders in ~/.rbenv_bak
 # --unistall        to uninstall rbenv completely
-# --no-ruby-build   to install/update without ruby-build plugin (not recommended)
+# --no-ruby-build   to install/update rbenv without ruby-build plugin (not recommended)
 # --only-ruby-build to install/update only ruby-build plugin
 # --uninstall-ruby-build
 #                   to uninstall ruby-build plugin
-
-# written by Szymon Błaszczyński in August 2014
 
 # The MIT License (MIT)
 
@@ -158,21 +156,21 @@ function uninstall_ruby_build {
 function uninstall {
   remove_rbenv_folder .rbenv
   declare -a SH_CONFIG=('.bashrc' '.bash_profile' '.zshrc');
-  for config in "${SH_CONFIG[@]}"
+  for CONFIG in "${SH_CONFIG[@]}"
   do
-    if ls -la ~/$config &> /dev/null; then
-      if grep -q 'export PATH="$HOME/.rbenv/bin:$PATH"' ~/$config || grep -q 'eval "$(rbenv init -)"' ~/$config ; then
-        cp ~/$config ~/$config.bak
-        echo "Created backup of your $config shell configuration file."
+    if ls -la ~/$CONFIG &> /dev/null; then
+      if grep -q 'export PATH="$HOME/.rbenv/bin:$PATH"' ~/$CONFIG || grep -q 'eval "$(rbenv init -)"' ~/$CONFIG ; then
+        cp ~/$CONFIG ~/$CONFIG.bak
+        echo "Created backup of your $CONFIG shell configuration file."
         LINES=0
-        if sed -i /'eval "$(rbenv init -)"'/{d} ~/$config ; then
+        if sed -i /'eval "$(rbenv init -)"'/{d} ~/$CONFIG ; then
           LINES=$(($LINES + 1))
         fi
-        if sed -i '\~export PATH="$HOME/.rbenv/bin:$PATH"~d' ~/$config ; then
+        if sed -i '\~export PATH="$HOME/.rbenv/bin:$PATH"~d' ~/$CONFIG ; then
           LINES=$(($LINES + 1))
         fi
-        echo "Deleted $LINES lines from your $config shell configuration file."
-        . ~/$config
+        echo "Deleted $LINES lines from your $CONFIG shell configuration file."
+        . ~/$CONFIG
         exec $SHELL
         echo "Reloaded your shell configuration, but you may need to restart your terminal."
       fi
@@ -189,8 +187,6 @@ function backup {
     if cp -rf ~/.rbenv/plugins ~/.rbenv_bak/plugins ; then
       echo "Backuped your plugins folder."
       BACKUP=0
-    else
-      BACKUP=1
     fi
   else
     echo "You don't have plugins folder. Skipping."
@@ -226,7 +222,6 @@ function revert_backup {
       BACKUP=0
     else
       echo "Cannot revert plugins folder from $HOME/.rbenv_bak"
-      BACKUP=1
     fi
   else
     echo "You don't have plugins folder. Skipping."
@@ -328,19 +323,18 @@ function print_help {
   printf "%s\n" "rbenv installation script version 0.1" 
   printf "%s\n" "this script follows installation guide from https://github.com/sstephenson/rbenv"
   printf "%s\n" ""
-  printf "%s\n" "usage: rbenv_install [OPTION...]"
+  printf "%s\n" "usage: rbenv-install [OPTION...]"
   printf "%s\n" ""
   printf "%s\n" "  --help            to see this help"
   printf "%s\n" "  --install         to install/update rbenv"
   printf "%s\n" "  --license         to see license"
   printf "%s\n" "  --backup          to create backup of plugins and versions folders in ~/.rbenv_bak"
   printf "%s\n" "  --unistall        to uninstall rbenv completely"
-  printf "%s\n" "  --no-ruby-build   to install/update without ruby-build plugin (not recommended)"
+  printf "%s\n" "  --no-ruby-build   to install/update rbenv without ruby-build plugin (not recommended)"
   printf "%s\n" "  --only-ruby-build to install/update only ruby-build plugin"
   printf "%s\n" "  --uninstall-ruby-build"
   printf "%s\n" "                    to uninstall ruby-build plugin"
   printf "%s\n" ""
-  printf "%s\n" "written by Szymon Błaszczyński in August 2014"    
 }
 
 function install {
@@ -466,25 +460,25 @@ function install {
   # If using Zsh shell, adding lines required by rbenv and
   # reloading configuration
   ZSH_CONF='.zshrc'
-  if ls -la ~/ZSH_CONF &> /dev/null; then
-    if ! grep -q $PROFILE_LINE1 ~/ZSH_CONF ; then
-      add_line PROFILE_LINE1 ~/ZSH_CONF
+  if ls -la ~/$ZSH_CONF &> /dev/null; then
+    if ! grep -q $PROFILE_LINE1 ~/$ZSH_CONF ; then
+      add_line $PROFILE_LINE1 ~/$ZSH_CONF
       echo "Added line to $HOME./.zshrc"
     fi
-    if ! grep -q $PROFILE_LINE2 ~/ZSH_CONF ; then
-      add_line PROFILE_LINE2 ~/ZSH_CONF
+    if ! grep -q $PROFILE_LINE2 ~/$ZSH_CONF ; then
+      add_line $PROFILE_LINE2 ~/$ZSH_CONF
       echo 'Added line to $HOME/.zshrc'
     fi
     # Reloading shell configuration file
-    . ~/ZSH_CONF
+    . ~/$ZSH_CONF
   else
     while true; do
       echo "It seems you don't have ~/.zshrc for Zsh shell do you wish to create it?"
       read -p  "Answer yes if you plan to use Zsh shell. [Y/n]:" yn
       case $yn in
           [Yy]* ) 
-            add_line PROFILE_LINE1 ~/ZSH_CONF
-            add_line PROFILE_LINE2 ~/ZSH_CONF
+            add_line $PROFILE_LINE1 ~/$ZSH_CONF
+            add_line $PROFILE_LINE2 ~/$ZSH_CONF
             break;;
           [Nn]* ) break;;
           * ) echo "Please answer yes or no.";;
