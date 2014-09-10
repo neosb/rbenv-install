@@ -10,7 +10,7 @@
 # --license         to see license
 # --install         to install/update rbenv
 # --backup          to create backup of plugins and versions folders in ~/.rbenv_bak
-# --unistall        to uninstall rbenv completely
+# --uninstall       to uninstall rbenv completely
 # --no-ruby-build   to install/update rbenv without ruby-build plugin (not recommended)
 # --only-ruby-build to install/update only ruby-build plugin
 # --uninstall-ruby-build
@@ -329,12 +329,11 @@ function print_help {
   printf "%s\n" "  --install         to install/update rbenv"
   printf "%s\n" "  --license         to see license"
   printf "%s\n" "  --backup          to create backup of plugins and versions folders in ~/.rbenv_bak"
-  printf "%s\n" "  --unistall        to uninstall rbenv completely"
+  printf "%s\n" "  --uninstall       to uninstall rbenv completely"
   printf "%s\n" "  --no-ruby-build   to install/update rbenv without ruby-build plugin (not recommended)"
   printf "%s\n" "  --only-ruby-build to install/update only ruby-build plugin"
   printf "%s\n" "  --uninstall-ruby-build"
   printf "%s\n" "                    to uninstall ruby-build plugin"
-  printf "%s\n" ""
 }
 
 function install {
