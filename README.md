@@ -1,5 +1,8 @@
 rbenv-install
 =============
+
+*I heard you like inception, so I made softtware which installs software which installs software.*
+
 rbenv-install is a bash script for maintaning your rbenv installation
 
 	usage: rbenv-install [OPTION...]
