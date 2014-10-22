@@ -593,19 +593,19 @@ else
       # Printing help out
       --help )
         print_help
-        exit
+        return 0
         ;;
       # Standard install
       --install )
         install
         install_ruby_build
         install_rbenv_gemset
-        exit
+        return 0
         ;;
       # Printing license out
       --license )
         license
-        exit
+        return 0
         ;;
       # Backup
       --backup )
@@ -614,35 +614,35 @@ else
         else
           echo "Backup failed."
         fi
-        exit
+        return 0
         ;;
       # Uninstalling
       --uninstall )
         uninstall
-        exit
+        return 0
         ;;
       # Installing only ruby-build plugin
       --only-ruby-build )
         install_ruby_build
-        exit
+        return 0
         ;;
       --only-rbenv-gemset )
         install_rbenv_gemset
-        exit
+        return 0
         ;;
       # Installing rbenv without ruby-build
       --no-ruby-build )
         RUBY_BUILD=1
         install
-        exit
+        return 0
         ;;
       --uninstall-ruby-build )
         uninstall_ruby_build
-        exit
+        return 0
         ;;
       --Uninstall-rbenv-gemset )
         uninstall_rbenv_gemset
-        exit
+        return 0
         ;;
     esac
   done
