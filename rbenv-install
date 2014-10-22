@@ -62,7 +62,7 @@ function clone_rbenv {
     return 0
   else
     return 1
-  fi  
+  fi
 }
 
 function clone_ruby_build {
@@ -74,9 +74,28 @@ function clone_ruby_build {
   fi
 }
 
+function clone_rbenv_gemset {
+  requirements
+  if git clone https://github.com/jf/rbenv-gemset.git ~/.rbenv/plugins/rbenv-gemset ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 function update_rbenv {
   requirements
   cd ~/.rbenv
+  if git pull ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+function update_rbenv_gemset {
+  requirements
+  cd ~/.rbenv/plugins/rbenv-gemset
   if git pull ; then
     return 0
   else
@@ -94,7 +113,44 @@ function update_ruby_build {
   fi
 }
 
-# Install ruby-buil plugin
+# Install rbenv-gemset plugin
+function install_rbenv_gemset {
+  requirements
+  if clone_rbenv_gemset; then
+    echo "Cloned rbenv-gemset repository to ~/.rbenv/plugins/rbenv-gemset"
+    echo "Type 'rbenv install --list' to see list of possible rubies for installation."
+    exec $SHELL
+  # Something went wrong
+  else
+    # Check if rbenv-gemset is installed
+    if ls -la ~/.rbenv/plugins/rbenv-gemset &> /dev/null; then
+      while true ; do
+        echo "You already have rbenv-gemset."
+        read -p "Do you wish to update? [Y/n]:" yn
+        case $yn in
+          # Update
+          [Yy]* )
+            if update_rbenv_gemset ; then
+              echo "Successfully updated rbenv-gemset to the newest version."
+            else
+              echo "Cannot connect using git to rbenv-gemset repository. Check your Internet connection and try to manually install rbenv-gemset from https://github.com/jf/rbenv-gemset"
+              exit 1
+            fi
+            break;;
+          # Cancel
+          [Nn]* ) exit;;
+          * ) echo "Please answer yes or no.";;
+        esac
+      done
+    # Something else went wrong
+    else
+      echo "Cannot connect using git to rbenv-gemset repository. Check your Internet connection and try to manually install rbenv-gemset from https://github.com/jf/rbenv-gemset"
+      exit 1;
+    fi
+  fi
+}
+
+# Install ruby-build plugin
 function install_ruby_build {
   requirements
   if clone_ruby_build; then
@@ -110,7 +166,7 @@ function install_ruby_build {
         read -p "Do you wish to update? [Y/n]:" yn
         case $yn in
           # Update
-          [Yy]* ) 
+          [Yy]* )
             if update_ruby_build ; then
               echo "Successfully updated ruby-build to the newest version."
             else
@@ -138,6 +194,16 @@ function remove_rbenv_folder {
     return 0
   else
     return 1
+  fi
+}
+
+function uninstall_rbenv_gemset {
+  if remove_rbenv_folder .rbenv/plugins/rbenv-gemset ; then
+    echo "Successfully deleted rbenv-gemset."
+    exit
+  else
+    echo "Can't delete rbenv-gemset."
+    exit 1
   fi
 }
 
@@ -320,7 +386,7 @@ THE SOFTWARE."
 
 # Print help to output
 function print_help {
-  printf "%s\n" "rbenv installation script version 0.1" 
+  printf "%s\n" "rbenv installation script version 0.1"
   printf "%s\n" "this script follows installation guide from https://github.com/sstephenson/rbenv"
   printf "%s\n" ""
   printf "%s\n" "usage: rbenv-install [OPTION...]"
@@ -475,7 +541,7 @@ function install {
       echo "It seems you don't have ~/.zshrc for Zsh shell do you wish to create it?"
       read -p  "Answer yes if you plan to use Zsh shell. [Y/n]:" yn
       case $yn in
-          [Yy]* ) 
+          [Yy]* )
             add_line $PROFILE_LINE1 ~/$ZSH_CONF
             add_line $PROFILE_LINE2 ~/$ZSH_CONF
             break;;
@@ -532,6 +598,8 @@ else
       # Standard install
       --install )
         install
+        install_ruby_build
+        install_rbenv_gemset
         exit
         ;;
       # Printing license out
@@ -549,13 +617,17 @@ else
         exit
         ;;
       # Uninstalling
-      --uninstall ) 
+      --uninstall )
         uninstall
         exit
         ;;
       # Installing only ruby-build plugin
       --only-ruby-build )
         install_ruby_build
+        exit
+        ;;
+      --only-rbenv-gemset )
+        install_rbenv_gemset
         exit
         ;;
       # Installing rbenv without ruby-build
@@ -566,6 +638,10 @@ else
         ;;
       --uninstall-ruby-build )
         uninstall_ruby_build
+        exit
+        ;;
+      --Uninstall-rbenv-gemset )
+        uninstall_rbenv_gemset
         exit
         ;;
     esac
