@@ -50,10 +50,10 @@ PROFILE_LINE2='eval "$(rbenv init -)"'
 
 # FUNCTIONS
 
-# Check if git is installed, if not exit
+# Check if git is installed, if not return 1
 function requirements {
   # Checking if git is installed
-  hash git 2>/dev/null || { echo >&2 "I require git but it's not installed. Visit http://git-scm.com/download/linux for further instructions...   Aborting."; exit 1; }
+  hash git 2>/dev/null || { echo >&2 "I require git but it's not installed. Visit http://git-scm.com/download/linux for further instructions...   Aborting."; return 1; }
 }
 
 function clone_rbenv {
@@ -134,7 +134,7 @@ function install_rbenv_gemset {
               echo "Successfully updated rbenv-gemset to the newest version."
             else
               echo "Cannot connect using git to rbenv-gemset repository. Check your Internet connection and try to manually install rbenv-gemset from https://github.com/jf/rbenv-gemset"
-              exit 1
+              return 1
             fi
             break;;
           # Cancel
@@ -145,7 +145,7 @@ function install_rbenv_gemset {
     # Something else went wrong
     else
       echo "Cannot connect using git to rbenv-gemset repository. Check your Internet connection and try to manually install rbenv-gemset from https://github.com/jf/rbenv-gemset"
-      exit 1;
+      return 1;
     fi
   fi
 }
@@ -171,7 +171,7 @@ function install_ruby_build {
               echo "Successfully updated ruby-build to the newest version."
             else
               echo "Cannot connect using git to ruby-build repository. Check your Internet connection and try to manually install ruby-build from https://github.com/sstephenson/ruby-build"
-              exit 1
+              return 1
             fi
             break;;
           # Cancel
@@ -182,7 +182,7 @@ function install_ruby_build {
     # Something else went wrong
     else
       echo "Cannot connect using git to ruby-build repository. Check your Internet connection and try to manually install ruby-build from https://github.com/sstephenson/ruby-build"
-      exit 1;
+      return 1;
     fi
   fi
 }
@@ -200,20 +200,20 @@ function remove_rbenv_folder {
 function uninstall_rbenv_gemset {
   if remove_rbenv_folder .rbenv/plugins/rbenv-gemset ; then
     echo "Successfully deleted rbenv-gemset."
-    exit
+    return 0
   else
     echo "Can't delete rbenv-gemset."
-    exit 1
+    return 1
   fi
 }
 
 function uninstall_ruby_build {
   if remove_rbenv_folder .rbenv/plugins/ruby-build ; then
     echo "Successfully deleted ruby-build."
-    exit
+    return 0
   else
     echo "Can't delete ruby-build."
-    exit 1
+    return 1
   fi
 }
 
@@ -323,7 +323,7 @@ function clean_install {
     echo "Cloned rbenv repository to ~/.rbenv"
   else
     echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
-    exit 1;
+    return 1;
   fi
 }
 
@@ -427,7 +427,7 @@ function install {
                     clean_install
                     break;;
                   # Cancel
-                  [Nn]* ) exit;;
+                  [Nn]* ) return 0;;
                   * ) echo "Please answer yes or no.";;
                 esac
               done
@@ -446,7 +446,7 @@ function install {
               else
                 echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
                 echo "You have your plugins and versions folders backuped in $HOME/.rbenv_bak"
-                exit 1;
+                return 1;
               fi
             fi
             break;;
@@ -464,11 +464,11 @@ function install {
                       echo "Successfully updated rbenv to the newest version"
                     else
                       echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
-                      exit 1
+                      return 1
                     fi
                     break;;
                   # Cancel
-                  [Nn]* ) exit;;
+                  [Nn]* ) return 0;;
                   * ) echo "Please answer yes or no.";;
                 esac
               done
@@ -486,7 +486,7 @@ function install {
               else
                 echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
                 echo "You have your plugins and versions folders backuped in $HOME/.rbenv_bak"
-                exit 1;
+                return 1;
               fi
             fi
             break;;
@@ -494,13 +494,13 @@ function install {
             clean_install
             break;;
           # Cancel
-          Cancel ) exit;;
+          Cancel ) return 0;;
         esac
       done
     # Probably connection with internet isn't working
     else
      echo "Cannot connect using git to rbenv repository. Check your Internet connection or install rbenv manually from https://github.com/sstephenson/rbenv"
-     exit 1;
+     return 1;
     fi
   fi
 
@@ -562,7 +562,7 @@ function install {
     echo 'Success! rbenv is properly working'
   else
     echo 'Something went wrong. You may want to check your logs looking for errors.'
-    exit 1;
+    return 1;
   fi
 
   # If backup failed or wasn't used installing ruby-build
@@ -584,7 +584,7 @@ function install {
 if [ "$#" -eq "0" ] ; then
   ARGUMENTS=0
   print_help
-  exit
+  return 0
 else
   ARGUMENTS=$#
   for var in "$@"
